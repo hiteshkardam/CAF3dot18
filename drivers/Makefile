@@ -173,3 +173,5 @@ obj-$(CONFIG_SENSORS_SSC)	+= sensors/
 
 # <t-base drivers
 obj-$(CONFIG_TRUSTONIC_TEE)	+= gud/
+#HTC Security
+obj-$(CONFIG_HTC_MSM_SERIAL)    += htc_msm_serial/
