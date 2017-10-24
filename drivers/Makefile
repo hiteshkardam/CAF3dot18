@@ -164,6 +164,10 @@ obj-$(CONFIG_POWERCAP)		+= powercap/
 obj-$(CONFIG_MCB)		+= mcb/
 obj-$(CONFIG_RAS)		+= ras/
 obj-$(CONFIG_THUNDERBOLT)	+= thunderbolt/
+
+# HTC debug
+obj-$(CONFIG_HTC_DEBUG)		+= htc_debug/
+
 obj-$(CONFIG_CORESIGHT)		+= coresight/
 obj-$(CONFIG_ESOC)		+= esoc/
 
@@ -173,5 +177,8 @@ obj-$(CONFIG_SENSORS_SSC)	+= sensors/
 
 # <t-base drivers
 obj-$(CONFIG_TRUSTONIC_TEE)	+= gud/
+
+# htc_ril driver
+obj-y += htc_ril/
 #HTC Security
 obj-$(CONFIG_HTC_MSM_SERIAL)    += htc_msm_serial/
