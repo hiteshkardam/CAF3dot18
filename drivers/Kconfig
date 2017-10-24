@@ -205,4 +205,9 @@ source "drivers/gud/Kconfig"
 source "drivers/htc_msm_serial/Kconfig"
 
 source "drivers/htc_ril/Kconfig"
+
+source "drivers/htc_mnemosyne/Kconfig"
+
+source "drivers/htc_loglevel/Kconfig"
+
 endmenu
