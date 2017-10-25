@@ -3,9 +3,9 @@
 # Path to build your kernel
   k=~/android/CAF3dot18
 # Directory for the any kernel updater
-#  t=$k/packages
+#  t=/home/assassin/android/anykernel
 # Date to add to zip
-  today=$(date +"%m_%d_%Y")
+#  today=$(date + "%d-%m-%Y_%H-%M-%S")
 
 # Clean old builds
 #   echo "Clean"
@@ -35,10 +35,10 @@ fi
 #    cp -R "$t/ramdisk" out/$c
 #    cp -R "$t/tools" out/$c
 #    cp -R "$t/anykernel.sh" out/$c
-
+#
 #  m=$k/out/$c/system/lib/modules
 #  z=$c-$today
-
+#
 TOOLCHAIN=/home/assassin/android/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 
 export ARCH=arm64
@@ -67,7 +67,14 @@ make ARCH=arm64 CROSS_COMPILE=$TOOLCHAIN O=out -j`grep 'processor' /proc/cpuinfo
 #   echo ""
 #   cp $k/out/arch/arm64/boot/Image.gz-dtb out/$c/Image.gz-dtb
 #   done
-   
+
+if [ -e $k/out/arch/arm64/boot/zImage ]
+then
+	rm -rf $k/out/arch/arm64/boot/zImage
+fi
+
+mv $k/out/arch/arm64/boot/Image.gz-dtb $k/out/arch/arm64/boot/zImage
+
 # Build Zip
 # clear
 #   echo "Creating $z.zip"
