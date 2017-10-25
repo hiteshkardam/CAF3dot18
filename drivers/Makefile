@@ -169,6 +169,7 @@ obj-$(CONFIG_THUNDERBOLT)	+= thunderbolt/
 obj-$(CONFIG_HTC_DEBUG)		+= htc_debug/
 
 obj-$(CONFIG_CORESIGHT)		+= coresight/
+obj-$(CONFIG_ANDROID)		+= android/
 obj-$(CONFIG_ESOC)		+= esoc/
 
 obj-$(CONFIG_BIF)		+= bif/
