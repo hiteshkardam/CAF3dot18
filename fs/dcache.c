@@ -727,7 +727,7 @@ void dput(struct dentry *dentry)
 		return;
 
 repeat:
-	might_sleep();
+	//might_sleep();
 
 	rcu_read_lock();
 	if (likely(fast_dput(dentry))) {
