@@ -948,6 +948,16 @@ void msm_isp_notify(struct vfe_device *vfe_dev, uint32_t event_type,
 				pr_err("%s: PIX0 frame id: %u\n", __func__,
 				vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id);
 			vfe_dev->isp_sof_debug++;
+		
+		if ((vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id < 3)||
+			(vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id == 10)||
+			((vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id%50) == 0))
+		{
+			pr_info("[CAM]%s:(%d)PIX0 frame id: %u\n", __func__, vfe_dev->pdev->id,
+				vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id);
+		}
+		
+
 		} else if (frame_src == VFE_RAW_0) {
 			if (vfe_dev->isp_raw0_debug < ISP_SOF_DEBUG_COUNT)
 				pr_err("%s: RAW_0 frame id: %u\n", __func__,
@@ -2256,10 +2266,15 @@ int msm_isp_update_stream_bandwidth(struct vfe_device *vfe_dev,
 
 	return rc;
 }
-
+#if 1
+static int msm_isp_axi_wait_for_cfg_done(struct vfe_device *vfe_dev,
+	enum msm_isp_camif_update_state camif_update,
+	uint32_t src_mask, int regUpdateCnt, uint32_t ReduceTimeout)
+#else
 static int msm_isp_axi_wait_for_cfg_done(struct vfe_device *vfe_dev,
 	enum msm_isp_camif_update_state camif_update,
 	uint32_t src_mask, int regUpdateCnt)
+#endif
 {
 	int rc;
 	unsigned long flags;
@@ -2284,6 +2299,14 @@ static int msm_isp_axi_wait_for_cfg_done(struct vfe_device *vfe_dev,
 		vfe_dev->axi_data.pipeline_update = camif_update;
 	}
 	spin_unlock_irqrestore(&vfe_dev->shared_data_lock, flags);
+	if(ReduceTimeout == 1)
+	{
+		pr_info("[CAM]%s:wait_for_completion_timeout reduce timeout 100ms\n", __func__);
+		rc = wait_for_completion_timeout(
+		&vfe_dev->stream_config_complete,
+		msecs_to_jiffies(100));
+	}
+	else
 	rc = wait_for_completion_timeout(
 		&vfe_dev->stream_config_complete,
 		msecs_to_jiffies(VFE_MAX_CFG_TIMEOUT));
@@ -2876,8 +2899,13 @@ static int msm_isp_start_axi_stream(struct vfe_device *vfe_dev,
 	}
 
 	if (wait_for_complete) {
+#if 1
+		rc = msm_isp_axi_wait_for_cfg_done(vfe_dev, camif_update,
+			src_mask, 2, 0);
+#else
 		rc = msm_isp_axi_wait_for_cfg_done(vfe_dev, camif_update,
 			src_mask, 2);
+#endif
 		if (rc < 0) {
 			pr_err("%s: wait for config done failed\n", __func__);
 			for (i = 0; i < stream_cfg_cmd->num_streams; i++) {
@@ -2911,7 +2939,7 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 	uint32_t src_mask = 0, intf, bufq_id = 0, bufq_handle = 0;
 	unsigned long flags;
 	struct msm_isp_timestamp timestamp;
-
+	uint32_t reduce_timeout = stream_cfg_cmd->reduce_timeout;
 	if (stream_cfg_cmd->num_streams > MAX_NUM_STREAM ||
 		stream_cfg_cmd->num_streams == 0)
 		return -EINVAL;
@@ -2982,8 +3010,13 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 	}
 
 	if (src_mask) {
+#if 1
+		rc = msm_isp_axi_wait_for_cfg_done(vfe_dev, camif_update,
+			src_mask, 2, reduce_timeout);
+#else
 		rc = msm_isp_axi_wait_for_cfg_done(vfe_dev, camif_update,
 			src_mask, 2);
+#endif
 		if (rc < 0) {
 			pr_err("%s: wait for config done failed, retry...\n",
 				__func__);
@@ -2997,8 +3030,13 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 				vfe_dev->hw_info->vfe_ops.core_ops.reg_update(
 					vfe_dev,
 					SRC_TO_INTF(stream_info->stream_src));
+#if 1
+				rc = msm_isp_axi_wait_for_cfg_done(vfe_dev,
+					camif_update, src_mask, 1, reduce_timeout);
+#else
 				rc = msm_isp_axi_wait_for_cfg_done(vfe_dev,
 					camif_update, src_mask, 1);
+#endif
 				if (rc < 0) {
 					pr_err("%s: vfe%d cfg done failed\n",
 						__func__, vfe_dev->pdev->id);
@@ -3255,10 +3293,17 @@ static int msm_isp_request_frame(struct vfe_device *vfe_dev,
 		vfe_dev->axi_data.src_info[frame_src].frame_id + vfe_dev->
 		axi_data.src_info[frame_src].sof_counter_step)) ||
 		stream_info->undelivered_request_cnt >= MAX_BUFFERS_IN_HW) {
+#if 1
+                pr_err("[CAM]%s:%d invalid request_frame %d cur frame id %d pix %d\n",
+                        __func__, __LINE__, frame_id,
+                        vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id,
+                        vfe_dev->axi_data.src_info[VFE_PIX_0].active);
+#else
 		pr_debug("%s:%d invalid request_frame %d cur frame id %d pix %d\n",
 			__func__, __LINE__, frame_id,
 			vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id,
 			vfe_dev->axi_data.src_info[VFE_PIX_0].active);
+#endif
 
 		rc = msm_isp_return_empty_buffer(vfe_dev, stream_info,
 			user_stream_id, frame_id, buf_index, frame_src);
@@ -3270,10 +3315,17 @@ static int msm_isp_request_frame(struct vfe_device *vfe_dev,
 	if ((frame_src == VFE_PIX_0) && !stream_info->undelivered_request_cnt &&
 		MSM_VFE_STREAM_STOP_PERIOD !=
 		stream_info->activated_framedrop_period) {
+#if 1
+                pr_err("[CAM]%s:%d vfe %d frame_id %d prev_pattern %x stream_id %x\n",
+                        __func__, __LINE__, vfe_dev->pdev->id, frame_id,
+                        stream_info->activated_framedrop_period,
+                        stream_info->stream_id);
+#else
 		pr_debug("%s:%d vfe %d frame_id %d prev_pattern %x stream_id %x\n",
 			__func__, __LINE__, vfe_dev->pdev->id, frame_id,
 			stream_info->activated_framedrop_period,
 			stream_info->stream_id);
+#endif
 
 		rc = msm_isp_return_empty_buffer(vfe_dev, stream_info,
 			user_stream_id, frame_id, buf_index, frame_src);
@@ -3360,6 +3412,9 @@ static int msm_isp_request_frame(struct vfe_device *vfe_dev,
 		}
 		stream_info->sw_ping_pong_bit = 0;
 	} else if (stream_info->undelivered_request_cnt == 2) {
+		pingpong_status =
+			vfe_dev->hw_info->vfe_ops.axi_ops.get_pingpong_status(
+				vfe_dev);
 		rc = msm_isp_cfg_ping_pong_address(vfe_dev,
 				stream_info, pingpong_status, 0);
 		if (rc) {
@@ -3676,9 +3731,15 @@ int msm_isp_update_axi_stream(struct vfe_device *vfe_dev, void *arg)
 				__func__, stream_info->stream_id);
 			if (stream_info->state == ACTIVE) {
 				stream_info->state = UPDATING;
+#if 1
+				rc = msm_isp_axi_wait_for_cfg_done(vfe_dev,
+					NO_UPDATE, (1 << SRC_TO_INTF(
+					stream_info->stream_src)), 2, 0);
+#else
 				rc = msm_isp_axi_wait_for_cfg_done(vfe_dev,
 					NO_UPDATE, (1 << SRC_TO_INTF(
 					stream_info->stream_src)), 2);
+#endif
 				if (rc < 0)
 					pr_err("%s: wait for update failed\n",
 						__func__);
