@@ -73,8 +73,6 @@ then
 	rm -rf $k/out/arch/arm64/boot/zImage
 fi
 
-mv $k/out/arch/arm64/boot/Image.gz-dtb $k/out/arch/arm64/boot/zImage
-
 # Build Zip
 # clear
 #   echo "Creating $z.zip"
